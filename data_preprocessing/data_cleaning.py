@@ -38,5 +38,12 @@ def identification_reform(documents, unique_identification_dictionary):
         cleaned_doc.append(note)
    return cleaned_doc
 
+def clean_spaces(documents):
+    cleaned_doc = []
+    for note in documents:
+        single_space_note = ' '.join(note.split())
+        cleaned_doc.append(single_space_note)
+    return cleaned_doc
+
 
 
