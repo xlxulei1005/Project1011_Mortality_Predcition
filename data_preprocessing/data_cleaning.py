@@ -5,7 +5,18 @@ def find_unique_identification(documents):
     Returns:
        A list of unique identications
     '''
-    pass
+    identifications = []
+    for note in documents:
+        i = 0
+        while i <len(note):
+            if note[i] == '[' and note[i+1] == '*':
+                j = i+1
+                while note[j-1] != '*' or note[j] != ']':
+                    j+=1
+                identifications.append(note[i:j+1])
+    return list(set(identifications))
+
+
 def find_standrad_identification(identification, transformer_list):
     for transformer in transformer_list:
         standrad_identifications = transformer(identification)
@@ -37,6 +48,13 @@ def identification_reform(documents, unique_identification_dictionary):
            note = note.replace(identification, unique_identification_dictionary[identification])
         cleaned_doc.append(note)
    return cleaned_doc
+
+def clean_spaces(documents):
+    cleaned_doc = []
+    for note in documents:
+        single_space_note = ' '.join(note.split())
+        cleaned_doc.append(single_space_note)
+    return cleaned_doc
 
 
 
