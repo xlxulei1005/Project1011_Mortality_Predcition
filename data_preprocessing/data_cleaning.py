@@ -1,3 +1,8 @@
+from nltk.tokenize.treebank import TreebankWordTokenizer
+import re
+import string
+
+
 def find_unique_identification(documents):
     '''
     final all unique identification 
@@ -55,6 +60,26 @@ def clean_spaces(documents):
     for note in documents:
         single_space_note = ' '.join(note.split())
         cleaned_doc.append(single_space_note)
+    return cleaned_doc
+
+def word_tokenize(document):
+    cleaned_doc = []
+    translator = str.maketrans('', '', string.punctuation)
+    _treebank_word_tokenizer = TreebankWordTokenizer()
+    for note in documents:
+        note = note.translate(translator)
+        note = note.replace('0','#')
+        note = note.replace('1','#')
+        note = note.replace('2','#')
+        note = note.replace('3','#')
+        note = note.replace('4','#')
+        note = note.replace('5','#')
+        note = note.replace('6','#')
+        note = note.replace('7','#')
+        note = note.replace('8','#')
+        note = note.replace('9','#')
+        tokenized_note = _treebank_word_tokenizer.tokenize(note)
+        cleaned_doc.append(tokenized_note)
     return cleaned_doc
 
 
