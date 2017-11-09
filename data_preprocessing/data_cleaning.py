@@ -14,6 +14,7 @@ def find_unique_identification(documents):
                 while note[j-1] != '*' or note[j] != ']':
                     j+=1
                 identifications.append(note[i:j+1])
+            i+=1
     return list(set(identifications))
 
 
