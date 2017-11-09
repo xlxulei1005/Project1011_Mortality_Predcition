@@ -1,6 +1,5 @@
 '''
-	Stopwords class - part of sentlex
-	This class responds to True/False queries about whether a word is a stop word, based on a source file.
+	Stopwords class
 	The default stop words file is derived from Cornell Univ. SMART information system, and van Rijsbergen:
 	http://nlp.uned.es/~ircourse/examples/stoplist.html
 	http://www.lextek.com/manuals/onix/stopwords2.html
