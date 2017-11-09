@@ -10,15 +10,21 @@ def shrink_by_dfidf(documents):
 
 '''
 Args:
-   notes - list of notes from a single patient
-   number - the number of words to choose from tf-idf
+   notes - list of notes from patients, [notes from patient1, notes from patient2, ...]
+   k - the number of words to choose from tf-idf
 Return:
-    list of words
-
+    each line is top k words of a patient 
 '''
-def tf_idf(notes, number):
+def tf_idf(notes, k):
     vectorizer = TfidfVectorizer()
-    vectorizer.fit_transform(notes).toarray()
-    index_list = list(vectorizer.idf_.argsort()[:number])
+    vec = vectorizer.fit_transform(notes).toarray()
+    #index_list = list(vectorizer.idf_.argsort()[:number])
+    vec = [list(vec[i].argsort()[-k:][::-1]) for i in range(vec.shape[0])]
     word_list = vectorizer.get_feature_names()
-    return ([word_list[index] for index in index_list])
+    tf_idf = []
+    for i in range(len(vec)):
+        words_list = []
+        for j in range(len(vec[0])):
+            words_list.append(word_list[vec[i][j]])
+        tf_idf.append(words_list)
+    return tf_idf
