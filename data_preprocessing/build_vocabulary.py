@@ -19,6 +19,6 @@ Return:
 def tf_idf(notes, number):
     vectorizer = TfidfVectorizer()
     vectorizer.fit_transform(notes).toarray()
-    index_list = list(vectorizer.idf_.argsort()[-number:][::-1])
+    index_list = list(vectorizer.idf_.argsort()[:number])
     word_list = vectorizer.get_feature_names()
     return ([word_list[index] for index in index_list])
