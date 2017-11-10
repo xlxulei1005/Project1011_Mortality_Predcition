@@ -1,4 +1,5 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
+from data_cleaning import word_tokenize_by_string
 
 
 def build_vocabulary(documents):
@@ -16,8 +17,8 @@ Return:
     each line is top k words of a patient 
 '''
 def tf_idf(notes, k):
-    vectorizer = TfidfVectorizer()
-    vec = vectorizer.fit_transform(notes).toarray()
+    vectorizer = TfidfVectorizer(tokenizer = word_tokenize_by_string)
+    vec = vectorizer.fit_transform(notes).toarray(tokenizer = word_tokenize_by_string)
     #index_list = list(vectorizer.idf_.argsort()[:number])
     vec = [list(vec[i].argsort()[-k:][::-1]) for i in range(vec.shape[0])]
     word_list = vectorizer.get_feature_names()
