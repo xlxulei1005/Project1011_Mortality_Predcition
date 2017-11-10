@@ -132,8 +132,8 @@ def holiday_transformer(x):
     x:token 
     return 'HOLIDAY'
     '''
-    if 'company' in x.lower():
-        return 'COMPANY'
+    if 'holiday' in x.lower():
+        return 'HOLIDAY'
     else:
         return x
 
