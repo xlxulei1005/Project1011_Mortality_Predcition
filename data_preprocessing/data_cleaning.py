@@ -35,7 +35,7 @@ def create_unique_identification_dictionary(documents):
     unique_identifications = find_unique_identification(documents)
     standrad_identifications = []
     for identification in  unique_identifications:
-       standrad_identifications.append(find_standrad_identification(identification[2:-2]))
+       standrad_identifications.append(find_standrad_identification(identification[3:-3]))
     return dict(zip(unique_identifications, standrad_identifications)) 
 
 
