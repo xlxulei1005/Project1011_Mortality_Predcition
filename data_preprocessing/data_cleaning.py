@@ -37,7 +37,7 @@ def create_unique_identification_dictionary(documents):
     return dict(zip(unique_identifications, standrad_identifications)) 
 
 
-def identification_reform(documents, unique_identification_dictionary):
+def identification_reform(documents, unique_identification_dictionary = None):
     '''
     Args:
         documents: orignal data
@@ -45,13 +45,27 @@ def identification_reform(documents, unique_identification_dictionary):
     Returns:
              cleaned_doc: all identification replace by a standrad symbol
      '''
-     
-    cleaned_doc = []
+
+    identifications = []
+    new_documents = []
     for note in documents:
-        for identification in unique_identification_dictionary.keys():
-           note = note.replace(identification, unique_identification_dictionary[identification])
-        cleaned_doc.append(note)
-   return cleaned_doc
+        i = 0
+        new = note
+        while i <len(note):
+            if note[i] == '[' and note[i+1] == '*':
+                j = i+1
+                while note[j-1] != '*' or note[j] != ']':
+                    j+=1
+                identifications.append(note[i:j+1])
+                if unique_identification_dictionary == None:
+                    new = new.replace(note[i:j+1] ,unique_identification_dictionary[note[i:j+1]])
+                else:    
+                    new = new.replace(note[i:j+1] ,identification_transformer.transformer(note[i:j+1]))
+                
+            i+=1
+        new_documents.append(new)
+            
+    return list(set(identifications)), new_documents
 
 def clean_spaces(documents):
     cleaned_doc = []
@@ -79,6 +93,23 @@ def word_tokenize(document):
         tokenized_note = _treebank_word_tokenizer.tokenize(note)
         cleaned_doc.append(tokenized_note)
     return cleaned_doc
+
+def word_tokenize_by_string(note):
+    translator = str.maketrans('', '', string.punctuation)
+    _treebank_word_tokenizer = TreebankWordTokenizer()
+    note = note.translate(translator)
+    note = note.replace('0','#')
+    note = note.replace('1','#')
+    note = note.replace('2','#')
+    note = note.replace('3','#')
+    note = note.replace('4','#')
+    note = note.replace('5','#')
+    note = note.replace('6','#')
+    note = note.replace('7','#')
+    note = note.replace('8','#')
+    note = note.replace('9','#')
+    tokenized_note = _treebank_word_tokenizer.tokenize(note)
+    return tokenized_note
 
 
 

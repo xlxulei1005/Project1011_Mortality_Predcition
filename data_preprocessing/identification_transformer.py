@@ -1,7 +1,7 @@
 def date_transformer(identification):
     
     def isdate(text):
-        words = ['-','day','month','year','january','february','march','april'\
+        words = ['-','/','day','date','month','year','january','february','march','april',\
                 'may','june','july','august','september','october','november','december']
         if any(x in text.lower() for x in words):
             return True
@@ -99,30 +99,40 @@ def number_transformer(x):
 def numerical_transformer(x):
     '''
     x:token 
-    return 'NUMERICAL_TRANSFORMER'
+    return 'NUMERIC_IDENTIFIER'
     '''
-    if 'numerical' in x.lower():
-        return 'NUMERICAL_IDENTIFIER'
+    if ('numerical' in x.lower()) or ('numeric' in x.lower()):
+        return 'NUMERIC_IDENTIFIER'
+    else:
+        return x
+    
+def university_transformer(x):
+    '''
+    x:token 
+    return 'UNIVERSITY'
+    '''
+    if ('university' in x.lower()):
+        return 'UNIVERSITY'
     else:
         return x
 
 def company_transformer(x):
     '''
     x:token 
-    return 'COMPANY'
+    return 'NAME'
     '''
     if 'company' in x.lower():
         return 'COMPANY'
     else:
         return x
 
-def phone_transformer(x):
+def contact_transformer(x):
     '''
     x:token 
-    return 'PHONE'
+    return 'CONTACT'
     '''
-    if 'phone' in x.lower():
-        return 'PHONE'
+    if (('phone' in x.lower()) or ('contact' in x.lower())):
+        return 'CONTACT'
     else:
         return x
 
@@ -135,9 +145,18 @@ def holiday_transformer(x):
         return 'HOLIDAY'
     else:
         return x
+    
+def url_transformer(x):
+    '''
+    x:token 
+    return 'URL'
+    '''
+    if 'url' in x.lower():
+        return 'URL'
+    else:
+        return x
 
 def transformer(x):
-    x = date_transformer(x)
     x = location_transformer(x)
     x = hospital_transformer(x)
     x = name_transformer(x)
@@ -145,7 +164,11 @@ def transformer(x):
     x = job_transformer(x)
     x = number_transformer(x)
     x = numerical_transformer(x)
-    x = phone_transformer(x)
+    x = contact_transformer(x)
     x = holiday_transformer(x)
+    x = url_transformer(x)
+    x = university_transformer(x)
+    x = date_transformer(x)
     return x
+    
     
