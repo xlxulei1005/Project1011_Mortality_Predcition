@@ -1,7 +1,7 @@
 from nltk.tokenize.treebank import TreebankWordTokenizer
 import re
 import string
-
+import identification_transformer 
 
 def find_unique_identification(documents):
     '''
@@ -23,10 +23,8 @@ def find_unique_identification(documents):
     return list(set(identifications))
 
 
-def find_standrad_identification(identification, transformer_list):
-    for transformer in transformer_list:
-        standrad_identifications = transformer(identification)
-    return standrad_identifications
+def find_standrad_identification(identification):
+    return identification_transformer.transformer(identification)
 
 def create_unique_identification_dictionary(documents):
     '''

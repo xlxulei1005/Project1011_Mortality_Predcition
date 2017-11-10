@@ -67,12 +67,10 @@ def job_transformer(x):
     else:
         return x
 
-
-
 def is_number(s):
-	'''
-	Check if it is a number
-	'''
+    '''
+    Check if it is a number
+    '''
     try:
         float(s)
         return True
@@ -85,6 +83,7 @@ def is_number(s):
         return True
     except (TypeError, ValueError):
         pass
+
     return False
 
 def number_transformer(x):
