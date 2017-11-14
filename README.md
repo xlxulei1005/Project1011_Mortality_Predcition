@@ -4,11 +4,21 @@ The project repo for Natural Language Processing
 ## Data Description
 Files saved in: https://drive.google.com/drive/u/1/folders/1EJVIHULMXFmasnBwDTGb-j-mA5duN7ck
 * cleaned_notes.pickle: 
-   * Stucture: A python dictionary with three terms: 'CHARTTIME', 'SUBJECT_ID' and 'DOCUMENTS'. And the value is a list of the relevant 
+   * Structure: A python dictionary with three terms: 'CHARTTIME', 'SUBJECT_ID' and 'DOCUMENTS'. And the value is a list of the relevant 
    information in the same order. To be clear, 'CHARTTIME' is the excat time when the notes was created (type: pandas.tslib.Timestamp). 
    'SUBJECT_ID' is the unique ID for the subject (type: numpy.int64). DOCUMENTS is the entification replaced, multi-space replaced lower cases 
    notes (type: string)
    * author: Nan 
 * patient_timesheet_final.pickle:
-   * Stucture:
+   * Structure: A python dictionary with all valid SUBJECT_ID as keys. The values are also dictionaries with following terms: 
+      * 'ADMITTIME': 
+      * 'CHARTTIME': an array of time for all the notes created for the subject
+      * 'DEATHTIME': If the subject is recovered, the value will be NaT
+      * 'DISCHTIME': DISCHTIME and DEATHTIME are equal in our sample.
+      * 'CHARTTIME_valid': all notes with CHARTTIME before DISCHTIME
+      * 'Stay_interval': DISCHTIME - ADMITTIME. How long the subject stayed in ICU no matter what the reason for discharge(death or recover)
+      * 'CHARTTIME_todeath': DISCHTIME - CHARTTIME. The time length from the note created to the subject be discharged (death or recover)
+        This will be one of the lable (Time length) for our model
+      * 'CHARTTIME_interval': CHARTTIME - ADMITTIME. The time length between the the note created and the subject be admitted. Data for model trained on different time periods should be sampled according to this variable. 
+      
    * author: Nan 
