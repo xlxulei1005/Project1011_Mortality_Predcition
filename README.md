@@ -22,3 +22,10 @@ Files saved in: https://drive.google.com/drive/u/1/folders/1EJVIHULMXFmasnBwDTGb
       * 'CHARTTIME_interval': CHARTTIME - ADMITTIME. The time length between the the note created and the subject be admitted. Data for model trained on different time periods should be sampled according to this variable. 
       
    * author: Nan 
+
+* all_data.npy:
+   * Structure: Array of 3-dimensional lists that use word index to represent patient notes. For example, all_data[i][j][k][l] is a integer represents word l from sentence k, from note j, from patient i.
+      * 1st dimension (array): patient
+      * 2nd dimension (list): note
+      * 3rd dimension (list): sentence
+      * 4rd dimension (list): word
