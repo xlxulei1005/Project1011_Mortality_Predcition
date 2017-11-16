@@ -32,5 +32,5 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
 
 ## Recurrent Hierarchical Model
 The structure of our model is:
-![picture](blob/master/HAN.pdf)
+![picture](HAN.pdf)
 
