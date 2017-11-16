@@ -1,5 +1,5 @@
 # Project1011_Mortality_Predcition
-The project repo for Natural Language Processing
+The project repository for Natural Language Processing
 
 ## Data Description
 All of our processed data can be found at our [Google Drive](https://drive.google.com/drive/u/1/folders/1EJVIHULMXFmasnBwDTGb-j-mA5duN7ck)
