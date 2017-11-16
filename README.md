@@ -30,7 +30,7 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
       * 3rd dimension (list): sentence
       * 4rd dimension (list): word
 
-## Recurrent Hierarchical Model
+## Recurrent Hierarchical Attention Mechanism
 The structure of our model is:
 ![picture](RNN-NLP_model.png)
 
