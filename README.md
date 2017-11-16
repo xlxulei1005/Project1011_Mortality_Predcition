@@ -1,5 +1,6 @@
 # Project1011_Mortality_Predcition
-The project repository for Natural Language Processing
+The project repository for Motality prodiction for Intersive Care Unit patients
+
 **Team Member:** Sheng Liu, Haichao Wu, Nan Wu and Lei Xu
 
 ## Data Description
