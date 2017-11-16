@@ -32,5 +32,6 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
 
 ## Recurrent Hierarchical Model
 The structure of our model is:
-![alt text](https://github.com/xlxulei1005/Project1011_Mortality_Predcition/blob/master/HAN.pdf "Sturcture of the model")
+
+![alt text](https://github.com/xlxulei1005/Project1011_Mortality_Predcition/blob/master/HAN.pdf)
 
