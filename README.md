@@ -1,5 +1,6 @@
 # Project1011_Mortality_Predcition
 The project repository for Natural Language Processing
+**Team Member:** Sheng Liu, Haichao Wu, Nan Wu and Lei Xu
 
 ## Data Description
 All of our processed data can be found at our [Google Drive](https://drive.google.com/drive/u/1/folders/1EJVIHULMXFmasnBwDTGb-j-mA5duN7ck)
