@@ -30,9 +30,10 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
       * 3rd dimension (list): sentence
       * 4th dimension (list): word
 
-* mortality_label.npy :
-   * Structure: A numpy array with patient's mortality and corresponding subject_id. The order of subject_id is same as the all_data.npy.
+* label.npy :
+   * Structure: A numpy array with patient's mortality, corresponding subject_id and their notes id. The order of subject_id is same as the all_data.npy.
       * 'MORTALITY_LABEL': If the subject has DEATHTIME, the value is 1, else it is 0.
+      * 'NOTE_ID': array of list. Each list represents the all notes index from this patient.
       * 'SUBJECT_ID'
 
 ## Recurrent Hierarchical Attention Mechanism
