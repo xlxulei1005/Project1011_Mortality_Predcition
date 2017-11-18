@@ -30,6 +30,8 @@ def data_split(patient_list, downsampling_rate = 0.3):
         train_data_dead = train_data[train_data[:,1] == 1]
         train_data = np.vstack((train_data_survive,train_data_dead))
         #random.shuffle(train_data)
+        np.random.rand(train_data.shape[0]).argsort()
+        np.take(train_data,np.random.rand(train_data.shape[0]).argsort(),axis=0,out=train_data)
         print('The percentage of negative sample after downsampling is {:.1%}'.format(sum(train_data[:,1])/len(train_data[:,1])))
         return train_data[:,0], val_data[:,0], test_data[:,0]
 
