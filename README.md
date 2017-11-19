@@ -23,14 +23,18 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
         This will be one of the lable (Time length) for our model
       * 'CHARTTIME_interval': CHARTTIME - ADMITTIME. The time length between the the note created and the subject be admitted. Data for model trained on different time periods should be sampled according to this variable. 
       
-   
-
 * all_data.npy :
    * Structure: Array of 3-dimensional lists that use word index to represent patient notes. For example, all_data[i][j][k][l] is a integer represents word l from sentence k, from note j, from patient i.
       * 1st dimension (array): patient
       * 2nd dimension (list): note
       * 3rd dimension (list): sentence
-      * 4rd dimension (list): word
+      * 4th dimension (list): word
+
+* label.npy :
+   * Structure: A numpy array with patient's mortality, corresponding subject_id and their notes id. The order of subject_id is same as the all_data.npy.
+      * 'MORTALITY_LABEL': If the subject has DEATHTIME, the value is 1, else it is 0.
+      * 'NOTE_ID': array of list. Each list represents the all notes index from this patient.
+      * 'SUBJECT_ID'
 
 ## Recurrent Hierarchical Attention Mechanism
 The structure of our model is:
