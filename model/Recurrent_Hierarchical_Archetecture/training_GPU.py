@@ -67,6 +67,7 @@ number_of_classes = 2
 num_epoch = 4000
 print_val_loss_every = 100
 print_loss_every = 50
+learning_rate = 1e-2
 
 model = AttentionNoteRNN(batch_size, num_tokens, embed_size, word_gru_hidden, \
                          sent_gru_hidden, note_gru_hidden, n_classes= number_of_classes, note_attention = True)
@@ -118,8 +119,23 @@ logger.info('train size # sent ' + str(len(X_train)))
 logger.info('dev size # sent ' + str(len(X_val)))
 logger.info('test size # sent ' + str(len(X_test)))
 
-learning_rate = 1e-2
+logger.info('train size # sent ' + str(len(X_train)))
+logger.info('dev size # sent ' + str(len(X_val)))
+logger.info('test size # sent ' + str(len(X_test)))
+logger.info('batch_size: ' +str(batch_size))
+logger.info('num_tokens: ' + str(num_tokens))
+logger.info('embed_size: ' + str(embed_size))
+logger.info('word_gru_hidden: ' + str(word_gru_hidden))
+logger.info('sent_gru_hidden: ' + str(sent_gru_hidden))
+logger.info('note_gru_hidden: ' + str(note_gru_hidden))
+logger.info('number_of_classes: ' + str(number_of_classes))
+logger.info('num_epoch: ' +str(num_epoch))
+logger.info('print_val_loss_every' + str(print_val_loss_every))
+logger.info('print_loss_every' + str(print_loss_every))
+logger.info('Optimizer learning rate is ' + str(learning_rate))
+
 optimizer = optim.Adadelta(model.parameters(), lr=learning_rate)
+
 criterion = nn.CrossEntropyLoss()
 
 logger.info('Start to train...')
