@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=167:59:00
-#SBATCH --mem=50GB
-#SBATCH --gres=gpu:2
+#SBATCH --time=16:59:00
+#SBATCH --mem=20GB
+#SBATCH --gres=gpu:1
 #SBATCH --job-name=rha
 
 
