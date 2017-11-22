@@ -36,6 +36,13 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
       * 'NOTE_ID': array of list. Each list represents the all notes index from this patient.
       * 'SUBJECT_ID'
 
+* train_15m.npy (train/val/test_15m/6h/24h/all.npy):
+   * Structure: A python dictionary with "DATA", "MORTALITY_LABEL", "SUBJECT_ID", "NOTE_ID"
+      * 'DATA': Array of 3-dimensional lists that use word index to represent patient notes. For example, data[i][j][k][l] is a integer represents word l from sentence k, from note j, from patient i.
+      * 'SUBJECT_ID'
+      * 'MORTALITY_LABEL': If the subject has DEATHTIME, the value is 1, else it is 0.
+      * 'NOTE_ID': array of list. Each list represents the all notes index from this patient.
+
 ## Recurrent Hierarchical Attention Mechanism
 The structure of our model is:
 ![picture](RNN-NLP_model.png)
