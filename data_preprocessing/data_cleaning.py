@@ -74,7 +74,7 @@ def clean_spaces(documents):
         cleaned_doc.append(single_space_note)
     return cleaned_doc
 
-def word_tokenize(document):
+def word_tokenize(documents):
     cleaned_doc = []
     translator = str.maketrans('', '', string.punctuation)
     _treebank_word_tokenizer = TreebankWordTokenizer()

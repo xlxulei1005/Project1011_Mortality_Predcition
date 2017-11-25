@@ -1,3 +1,4 @@
+import random
 def data_split(patient_list, downsampling_rate = 0.3):
     # Argments:
     #       patient_list : in format [[patient_id, label]] where death label = 1 otherwise label = 0
