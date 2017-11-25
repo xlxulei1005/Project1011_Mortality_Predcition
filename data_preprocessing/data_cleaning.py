@@ -71,7 +71,7 @@ def clean_spaces(documents):
     cleaned_doc = []
     for note in documents:
         single_space_note = ' '.join(note.split())
-        cleaned_doc.append(single_space_note)
+        cleaned_doc.append(single_space_note.lower())
     return cleaned_doc
 
 def word_tokenize(documents):
