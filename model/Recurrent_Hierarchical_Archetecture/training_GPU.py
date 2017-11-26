@@ -57,16 +57,17 @@ def data_split(patient_list, downsampling_rate = 0.3):
         print('The percentage of negative sample is {:.1%}'.format(sum(train_data[:,1])/len(train_data[:,1])))
         return train_data[:,0], val_data[:,0], test_data[:,0]
 
-batch_size = 10
-num_tokens = 465317
+batch_size = 32
+num_tokens = 181444
 embed_size = 200
 word_gru_hidden = 200
 sent_gru_hidden = 200
 note_gru_hidden = 200
 number_of_classes = 2
-num_epoch = 1000
-print_val_loss_every = 50
-print_loss_every = 20
+num_epoch = 4000
+print_val_loss_every = 100
+print_loss_every = 50
+learning_rate = 1e-2
 
 model = AttentionNoteRNN(batch_size, num_tokens, embed_size, word_gru_hidden, \
                          sent_gru_hidden, note_gru_hidden, n_classes= number_of_classes, note_attention = True)
@@ -95,9 +96,9 @@ logger.addHandler(console)
 # load train/dev/test data
 # train data
 logger.info('loading data...')
-train = np.load('./train_all.npy')
-val = np.load('./val_all.npy')
-test = np.load('./test_all.npy')
+train = np.load('./train_15m.npy')
+val = np.load('./val_15m.npy')
+test = np.load('./test_15m.npy')
 X_train = train.item()['DATA']
 y_train = train.item()['MORTALITY_LABEL']
 X_val = val.item()['DATA']
@@ -118,8 +119,23 @@ logger.info('train size # sent ' + str(len(X_train)))
 logger.info('dev size # sent ' + str(len(X_val)))
 logger.info('test size # sent ' + str(len(X_test)))
 
-learning_rate = 1e-3
+logger.info('train size # sent ' + str(len(X_train)))
+logger.info('dev size # sent ' + str(len(X_val)))
+logger.info('test size # sent ' + str(len(X_test)))
+logger.info('batch_size: ' +str(batch_size))
+logger.info('num_tokens: ' + str(num_tokens))
+logger.info('embed_size: ' + str(embed_size))
+logger.info('word_gru_hidden: ' + str(word_gru_hidden))
+logger.info('sent_gru_hidden: ' + str(sent_gru_hidden))
+logger.info('note_gru_hidden: ' + str(note_gru_hidden))
+logger.info('number_of_classes: ' + str(number_of_classes))
+logger.info('num_epoch: ' +str(num_epoch))
+logger.info('print_val_loss_every' + str(print_val_loss_every))
+logger.info('print_loss_every' + str(print_loss_every))
+logger.info('Optimizer learning rate is ' + str(learning_rate))
+
 optimizer = optim.Adadelta(model.parameters(), lr=learning_rate)
+
 criterion = nn.CrossEntropyLoss()
 
 logger.info('Start to train...')
@@ -129,7 +145,7 @@ loss_full = train_early_stopping(batch_size, X_train, y_train, X_val, y_val, mod
 
 logger.info('Training end!')
 logger.info('Test!')
-test_acc,test_auc = test_accuracy_full_batch(X_test, y_test, 64, word_attn, sent_attn)
+test_acc,test_auc = test_accuracy_full_batch(X_test, y_test, 64, model)
 logger.info('Test accuracy is %.2f' % test_acc)
 logger.info('Test auc is %.2f' % test_auc)
 np.save('loss_full','loss_full')
