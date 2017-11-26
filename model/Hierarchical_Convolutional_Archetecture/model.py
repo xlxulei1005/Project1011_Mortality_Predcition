@@ -1,3 +1,8 @@
+"""
+Nan Wu
+All rights reserved
+Report bugs to Nan Wu nw1045@nyu.edu
+"""
 import torch.optim as optim
 import torch
 import torch.nn as nn
