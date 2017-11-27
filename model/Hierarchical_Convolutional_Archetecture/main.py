@@ -1,13 +1,8 @@
-"""
-Nan Wu
-All rights reserved
-Report bugs to Nan Wu nw1045@nyu.edu
-"""
 from model import AttentionRNN
 from train import data_iter, eval_iter, training_loop
 from data import data_formatting
 import logging
-import os 
+import os
 import numpy as np
 import torch.nn as nn
 import torch
@@ -15,20 +10,23 @@ import torch
 DATAPATH = './data_cnn'
 vocabulary = np.load(os.path.join(DATAPATH, 'voc_100.npy'))
 config = {'vocab_size': len(vocabulary),
-          'words_dim': 100,
+          'words_dim': 300,
           'embed_mode': 'random',
-          'output_channel': 50,
+          'output_channel': 100,
           'dropout':0,
           'target_class':2,
-          'note_gru_hidden': 100,
-          'bidirection_gru': False,
+          'note_gru_hidden': 200,
+          'bidirection_gru': True,
           'batch_size': 8,
           'learning_rate': 0.001,
-          'num_epochs':100,
-          'filter_width':5,
+          'num_epochs':150,
+          'filter_width':8,
           'cuda': True,
+          'attention': True,
+          'early_stop': 3,
+          'val_per_epoch': 5,
           'data_portion': 1,
-          'savepath': './model/15m_words_dim_100_output_cha_50_hidden_100_filter_width_5_batch_8_Adam_drop_0/',
+          'savepath': './model/15m_words_dim_200_output_cha_100_hidden_200_filter_width_8_batch_8_Adam_drop_0_attention/',
           'time_name': '15m'
 }
 
@@ -39,7 +37,7 @@ logger.setLevel(logging.INFO)
 # file handler
 if os.path.exists(config['savepath']):
    pass
-else:    
+else:      
    os.mkdir(config['savepath'])
 fh = logging.FileHandler(config['savepath'] + 'output.log')
 fh.setLevel(logging.INFO)
@@ -49,6 +47,7 @@ logger.addHandler(fh)
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 logger.addHandler(console)
+
 
 logger.info('loading data...')
 
@@ -70,8 +69,8 @@ if config['cuda']:
      model.cuda()
 
 # Loss and Optimizer
-loss = nn.CrossEntropyLoss()  
-#optimizer = torch.optim.Adadelta(model.parameters(), lr=config['learning_rate'])
+loss = nn.CrossEntropyLoss()
+#optimizer = torch.optim.SGD(model.parameters(), lr=config['learning_rate'])
 optimizer = torch.optim.Adam(model.parameters())
 print(model.parameters())
 # Train the model

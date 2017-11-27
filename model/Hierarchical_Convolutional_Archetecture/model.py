@@ -11,10 +11,54 @@ import torch.nn.functional as F
 import random
 import logging
 
+def batch_matmul_bias(seq, weight, bias, nonlinearity=''):
+    s = None
+    print(weight.size(),  seq.size())
+
+    bias_dim = bias.size()
+    for i in range(seq.size(0)):
+        _s = torch.matmul(seq[i], weight) 
+        _s_bias = _s + bias.expand(bias_dim[0], _s.size()[0]).transpose(0,1)
+        if(nonlinearity=='tanh'):
+            _s_bias = torch.tanh(_s_bias)
+        _s_bias = _s_bias.unsqueeze(0)
+        if(s is None):
+            s = _s_bias
+        else:
+            s = torch.cat((s,_s_bias),0)
+    return s
+
+def batch_matmul(seq, weight, nonlinearity=''):
+    s = None
+    for i in range(seq.size(0)):
+        _s = torch.matmul(seq[i], weight)
+        if (nonlinearity=='tanh'):
+            _s = torch.tanh(_s)
+        _s = _s.unsqueeze(0)
+        if(s is None):
+            s = _s
+        else:
+            s = torch.cat((s,_s),0)
+    return s.squeeze(2)
+
+def attention_mul(rnn_outputs, att_weights):
+    attn_vectors = None
+    for i in range(rnn_outputs.size(0)):
+        h_i = rnn_outputs[i]
+        a_i = att_weights[i].unsqueeze(1).expand_as(h_i)
+        h_i = a_i * h_i
+        h_i = h_i.unsqueeze(0)
+        if(attn_vectors is None):
+            attn_vectors = h_i
+        else:
+            attn_vectors = torch.cat((attn_vectors,h_i),0)
+    return torch.sum(attn_vectors, 0)
+
 
 class AttentionRNN(nn.Module):
     def __init__(self, config):
         super(AttentionRNN, self).__init__()
+        self.attention = config['attention']
         self.batch_size = config['batch_size']
         n_classes = config['target_class']
         output_channel = config['output_channel']
@@ -26,7 +70,14 @@ class AttentionRNN(nn.Module):
             self.lin_out = nn.Linear(self.note_gru_hidden * 2, n_classes)
         else:
             self.lin_out = nn.Linear(self.note_gru_hidden, n_classes)
-        #self.softmax_note = nn.Softmax()
+        self.softmax_note = nn.Softmax()
+        if self.attention == True:
+            #self.weight_W_note = nn.Parameter(torch.Tensor(2* note_gru_hidden ,2* note_gru_hidden))
+            self.weight_W_note = nn.Parameter(torch.randn(2* self.note_gru_hidden ,2* self.note_gru_hidden))
+            #self.bias_note = nn.Parameter(torch.Tensor(2* note_gru_hidden,1))
+            self.bias_note = nn.Parameter(torch.randn(2* self.note_gru_hidden,1))
+            #self.weight_proj_note = nn.Parameter(torch.Tensor(2* note_gru_hidden, 1))
+            self.weight_proj_note = nn.Parameter(torch.randn(2* self.note_gru_hidden, 1))
         
     def forward(self, mini_batch, hidden_state):
         num_of_notes, num_of_words, batch_size = mini_batch.size()
@@ -37,16 +88,40 @@ class AttentionRNN(nn.Module):
                 s = _s.unsqueeze(0)
             else:
                 s = torch.cat((s,_s.unsqueeze(0)),0)
-        #print('CNN: ', s.size())
-                
-        #packed_s = torch.nn.utils.rnn.pack_padded_sequence(s, length, batch_first=True)
         
-        # (seq_len, batch, input_size),  (num_layers * num_directions, batch, hidden_size)
         out_note, _ =  self.note_gru(s, hidden_state) 
-        #print('RNN: ',out_note.size())
-        x = out_note[-1,:,:].squeeze()
-        x = self.lin_out(x)
-        return F.softmax(x)
+
+        if self.attention:          
+            #print("-------------------------weight_W_note")
+            #print(self.weight_W_note.size())
+            #print(" -------------------------bias_note")
+            #print(self.bias_note.size())
+            note_squish = batch_matmul_bias(out_note, self.weight_W_note, self.bias_note, nonlinearity='tanh')
+            #print("-----------------------------note_squish")
+            #print(note_squish.size())
+            #print("----------------------weight_proj_note")
+            #print(self.weight_proj_note.size())
+            note_attn = batch_matmul(note_squish, self.weight_proj_note)
+            #note_attn = note_attn.unsqueeze(0)
+            #print("----------------------------note_attn")
+            #print(note_attn.size())
+            note_attn_norm = self.softmax_note(note_attn.transpose(1,0))    
+            #print("-----------------------------note_attn_norm")
+            #print(note_attn_norm)
+            note_attn_vectors = attention_mul(out_note, note_attn_norm.transpose(1,0))
+            #print("------------------------------note_attn_vectors")
+            #print(note_attn_vectors)
+            
+            # size note_attn_vectors: batch size x note_hidden * num_directions           
+            final_map = self.lin_out(note_attn_vectors)
+            #print(final_map)
+            return out_note, note_attn_norm, note_attn_vectors, F.softmax(final_map)
+
+        else:
+            x = out_note[-1,:,:].squeeze()
+            x = self.lin_out(x)
+
+            return F.softmax(x)
     
     def init_hidden(self):
         if self.bidirection_gru == True:

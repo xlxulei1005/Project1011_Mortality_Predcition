@@ -7,6 +7,29 @@ import torch
 import numpy as np
 import os
 
+def bin_time_label_generation(train_data, split_points = [5, 10 ,15]):
+    '''
+    
+    '''
+    def label_generate(time):
+        label_index = 0
+        for point in split_points:
+            if time<= point:
+                return label_index
+            label_index +=1
+        return label_index+1
+    label_all = []           
+   
+    for time_list in train_data['TIME_TODEATH']:
+        label = []
+        for t in time_list:
+            label.append(label_generate[t])
+        label_all.append(label)
+    return label_all
+    
+def continues_time_label_generation():
+    pass
+
 def notes_combine(infor_all):
     data = infor_all['DATA'] 
     notes_per_sub = []

@@ -1,8 +1,3 @@
-"""
-Nan Wu
-All rights reserved
-Report bugs to Nan Wu nw1045@nyu.edu
-"""
 import time
 import math
 import numpy as np
@@ -93,8 +88,10 @@ def evaluate(model, loss_, data_iter, config):
         hidden = model.init_hidden()
         if config['cuda']:
         	hidden = hidden.cuda()
-        
-        output = model(vectors, hidden)
+        if config['attention']:
+            _, _, _, output = model(vectors, hidden)
+        else:
+            output = model(vectors, hidden)
         loss = loss_(output, labels)
         _, predicted = torch.max(output.data, 1)
         total += labels.size(0)
@@ -109,7 +106,7 @@ def evaluate(model, loss_, data_iter, config):
     output_all = np.array(output_all)
     auc = metrics.roc_auc_score(labels_all, output_all[:,1])
     #loss_epoch = loss_(Variable(torch.from_numpy(output_all)), Variable(torch.from_numpy(np.array(labels))))
-    loss_epoch = metrics.log_loss(np.array(labels_all), output_all)
+    loss_epoch = metrics.log_loss(labels_all, output_all[:,1])
     return loss_epoch, correct / float(total), auc
 
 def timeSince(since):
@@ -126,6 +123,8 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
     start = time.time()
     labels_all = []
     output_all = []
+    auc_max = 0
+    early_count = 0
     while epoch <= config['num_epochs']:
         model.train()
         vectors, labels = get_batch(next(training_iter)) 
@@ -145,8 +144,12 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
             hidden = hidden.cuda()
         
         #model.zero_grad()
-        output = model(vectors, hidden)
-
+        if config['attention']:
+            _, note_attn_norm, _, output = model(vectors, hidden)
+        else:
+            output = model(vectors, hidden)
+        print('note_attn_norm:')
+        print(note_attn_norm)
         lossy = loss_(output, labels)
         lossy.backward()
         #torch.nn.utils.clip_grad_norm(model.parameters(), 5.0)
@@ -159,7 +162,12 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
         output_all += list(output.data.numpy())
     
         if step % total_batches == 0:
-            if epoch % 5 == 0 and epoch!=0:
+            output_all = np.array(output_all)
+            #print(output_all.shape, np.array(labels).shape)
+            #loss_epoch = loss_(Variable(torch.from_numpy(output_all)), Variable(torch.from_numpy(np.array(labels))))
+            loss_epoch = metrics.log_loss(labels_all, output_all[:,1])
+
+            if epoch % config['val_per_epoch'] == 0 and epoch!=0:
             	#print(timeSince(start), end = '; ')
             	logger.info(timeSince(start))
                 #print(" Epoch %i; Step %i; Train Loss %f; Val Loss: %f; Val acc %f; Val AUC %f" 
@@ -168,14 +176,24 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
                 eval_loss, acc, auc = evaluate(model, loss_, dev_iter, config)
                 logger.info(timeSince(start))
                 logger.info("Epoch %i; Step %i / %i; Train Loss %f; Val Loss: %f; Val acc %f; Val AUC %f" 
-                     %(epoch, step%total_batches, total_batches,  lossy.data[0], eval_loss, acc, auc))
-                torch.save(model.state_dict(), savepath + str(epoch) + 'model.pt')
-                logger.info('Model Saved')
+                     %(epoch, step%total_batches, total_batches, loss_epoch, eval_loss, acc, auc))
+                
+                if auc < auc_max:
+                    early_count += 1
+                    if early_count > config['early_stop']:
+                        logger.info('EARLY STOP:  Max auc %f at Epoch %i' % (auc_max,epoch))
+                        torch.save(model.state_dict(), savepath + str(epoch) + 'model.pt')
+                        logger.info('Model Saved')
+                else:
+                    auc_max = auc
+                    early_count = 0
+
+
             
-            output_all = np.array(output_all)
+            #output_all = np.array(output_all)
             #print(output_all.shape, np.array(labels).shape)
             #loss_epoch = loss_(Variable(torch.from_numpy(output_all)), Variable(torch.from_numpy(np.array(labels))))
-            loss_epoch = metrics.log_loss(np.array(labels_all), output_all)
+            #loss_epoch = metrics.log_loss(np.array(labels_all), output_all)
             logger.info("Epoch %i; Total Loss %f" %(epoch, loss_epoch))
             labels_all = []
             output_all = []
