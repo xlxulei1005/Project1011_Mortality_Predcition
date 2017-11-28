@@ -30,7 +30,9 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
       * 'SUBJECT_ID'
       * 'MORTALITY_LABEL': If the subject has DEATHTIME, the value is 1, else it is 0.
       * 'NOTE_ID': array of list. Each list represents the all notes index from this patient.
-      * 'TIME_TO_DEATH': array of list . Each list represents the DISCHTIME - CHARTTIME (measured in minutes) for each note of single patient. 
+      * 'TIME_TO_DEATH': array of list . Each list represents the DISCHTIME - CHARTTIME (measured in minutes) for each note of single patient. 
+
+
 
 ## Recurrent Hierarchical Attention Mechanism
 The structure of our model is:
