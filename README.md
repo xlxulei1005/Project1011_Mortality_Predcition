@@ -23,25 +23,14 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
         This will be one of the lable (Time length) for our model
       * 'CHARTTIME_interval': CHARTTIME - ADMITTIME. The time length between the the note created and the subject be admitted. Data for model trained on different time periods should be sampled according to this variable. 
       
-* all_data.npy :
-   * Structure: Array of 3-dimensional lists that use word index to represent patient notes. For example, all_data[i][j][k][l] is a integer represents word l from sentence k, from note j, from patient i.
-      * 1st dimension (array): patient
-      * 2nd dimension (list): note
-      * 3rd dimension (list): sentence
-      * 4th dimension (list): word
 
-* label.npy :
-   * Structure: A numpy array with patient's mortality, corresponding subject_id and their notes id. The order of subject_id is same as the all_data.npy.
-      * 'MORTALITY_LABEL': If the subject has DEATHTIME, the value is 1, else it is 0.
-      * 'NOTE_ID': array of list. Each list represents the all notes index from this patient.
-      * 'SUBJECT_ID'
-
-* train_15m.npy (train/val/test_15m/6h/24h/all.npy):
+* summarized_data/tokenized data/voc_100_new/train_15m.npy (and all other files like train/val/test_15m/6h/24h/all.npy):
    * Structure: A python dictionary with "DATA", "MORTALITY_LABEL", "SUBJECT_ID", "NOTE_ID"
       * 'DATA': Array of 3-dimensional lists that use word index to represent patient notes. For example, data[i][j][k][l] is a integer represents word l from sentence k, from note j, from patient i.
       * 'SUBJECT_ID'
       * 'MORTALITY_LABEL': If the subject has DEATHTIME, the value is 1, else it is 0.
       * 'NOTE_ID': array of list. Each list represents the all notes index from this patient.
+      * 'TIME_TO_DEATH': array of list . Each list represents the DISCHTIME - CHARTTIME (measured in minutes) for each note of single patient. 
 
 ## Recurrent Hierarchical Attention Mechanism
 The structure of our model is:
