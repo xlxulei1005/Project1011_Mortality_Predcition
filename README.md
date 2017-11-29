@@ -36,5 +36,5 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
 
 ## Recurrent Hierarchical Attention Mechanism
 The structure of our model is:
-![picture](RNN-NLP_model.png)
+![picture](/graph_explanation/RNN-NLP_model.png)
 
