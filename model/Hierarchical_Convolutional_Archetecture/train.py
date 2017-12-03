@@ -57,18 +57,64 @@ def get_batch(batch):
         labels.append(dict["label"])
     return vectors, labels
 
-def pad_minibatch(vectors):
+def pad_minibatch(vectors, word_padded_length, padded, pad_by_batch):
+
     length = max([len(x) for x in vectors])
     padded_v = []
-    note_len = len(vectors[0][0])
+    note_len = word_padded_length
+    if pad_by_batch:
+        note_len = max([len(x) for v in vectors for x in v ])
     for before_padded in vectors:
         #print(before_padded)
         v = before_padded[:]
         #print(type(v))
         for i in range(length - len(before_padded)):
             v.append([0]*note_len)
-        padded_v.append(v)
+        
+        if padded:
+            padded_v.append(v)
+        else:
+            words_padded = []
+            for note in v:
+                if len(note)>=note_len:
+                    words_padded.append(note[:note_len])
+                else:
+                    words_padded.append(note + [0]*(note_len -len(note)))
+            padded_v.append(words_padded)
+
+            # words_padded = np.zeros([length, note_len])
+            # for i in range(length):
+            #     for j in range(note_len):
+            #         try:
+            #             words_padded[i][j] = v[i][j] 
+            #         except IndexError:
+            #             pass
+        
     return torch.from_numpy(np.array(padded_v)).permute(1,2,0)
+
+
+def model_setup_cnn_rnn(model,vectors, config):
+
+    hidden = model.init_hidden()
+    if config['cuda']:
+        hidden = hidden.cuda()
+
+    if config['attention']:
+        _, note_attn_norm, _, output = model(vectors, hidden)
+        return note_attn_norm, output, model
+    else:
+        output = model(vectors, hidden)
+        return output, model
+
+def model_setup_bigru_max(model, vectors, config):
+
+    hidden_note, hidden_sub = model.init_hidden()
+    if config['cuda']:
+        hidden_note, hidden_sub = hidden_note.cuda(), hidden_sub.cuda()
+
+    output = model(vectors, hidden_note, hidden_sub)
+
+    return output, model
 
 def evaluate(model, loss_, data_iter, config):
     model.eval()
@@ -78,21 +124,33 @@ def evaluate(model, loss_, data_iter, config):
     output_all = []
     for i in range(len(data_iter)):
         vectors, labels = get_batch(data_iter[i])
-        vectors = pad_minibatch(vectors)
+        
+        if config['model'] == 'bigru_max':
+            pad_by_batch = True
+        elif config['model'] == 'cnn_rnn':
+            pad_by_batch = False
+
+        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], pad_by_batch)
+        
         labels = torch.stack(labels).squeeze()
+        
         if config['cuda']:
      		vectors = vectors.cuda()
      		labels = labels.cuda()
+
      	vectors = Variable(vectors)
         labels = Variable(labels)
-        hidden = model.init_hidden()
-        if config['cuda']:
-        	hidden = hidden.cuda()
-        if config['attention']:
-            _, _, _, output = model(vectors, hidden)
-        else:
-            output = model(vectors, hidden)
-        loss = loss_(output, labels)
+
+        if config['model'] == 'bigru_max':
+            output, model = model_setup_bigru_max(model,vectors, config)
+           
+        elif config['model'] == 'cnn_rnn':
+            note_attn_norm, output, model = model_setup_cnn_rnn(model,vectors, config)
+            print('note_attn_norm:')
+            print(note_attn_norm)
+
+        output = F.softmax(output)
+        #loss = loss_(output, labels)
         _, predicted = torch.max(output.data, 1)
         total += labels.size(0)
         predicted = predicted.cpu()
@@ -103,10 +161,11 @@ def evaluate(model, loss_, data_iter, config):
         labels_all += list(labels)
         output = output.cpu()
         output_all += list(output.data.numpy())
+
     output_all = np.array(output_all)
     auc = metrics.roc_auc_score(labels_all, output_all[:,1])
-    #loss_epoch = loss_(Variable(torch.from_numpy(output_all)), Variable(torch.from_numpy(np.array(labels))))
     loss_epoch = metrics.log_loss(labels_all, output_all[:,1])
+
     return loss_epoch, correct / float(total), auc
 
 def timeSince(since):
@@ -116,7 +175,7 @@ def timeSince(since):
     s -= m * 60
     return '%dm %ds' % (m, s)
 
-def training_loop(config, model, loss_, optim, train_data, training_iter, dev_iter, logger, savepath):
+def training_loop(config, model, loss_, optim, train_data, training_iter, dev_iter, test_iter, logger, savepath):
     step = 0
     epoch = 0
     total_batches = int(len(train_data) / config['batch_size'])
@@ -128,28 +187,34 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
     while epoch <= config['num_epochs']:
         model.train()
         vectors, labels = get_batch(next(training_iter)) 
-        vectors = pad_minibatch(vectors)
+
+        if config['model'] == 'bigru_max':
+            pad_by_batch = True
+        elif config['model'] == 'cnn_rnn':
+            pad_by_batch = False
+
+        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], pad_by_batch)
+        
+
         labels = torch.stack(labels).squeeze()
         print(labels)
         if config['cuda']:
      		vectors = vectors.cuda()
      		labels = labels.cuda()
+
      	vectors = Variable(vectors)
         labels = Variable(labels)
         optim.zero_grad()
         
         
-        hidden = model.init_hidden()
-        if config['cuda']:
-            hidden = hidden.cuda()
-        
-        #model.zero_grad()
-        if config['attention']:
-            _, note_attn_norm, _, output = model(vectors, hidden)
-        else:
-            output = model(vectors, hidden)
-        print('note_attn_norm:')
-        print(note_attn_norm)
+        if config['model'] == 'bigru_max':
+            output, model = model_setup_bigru_max(model,vectors, config)
+            
+        elif config['model'] == 'cnn_rnn':
+            note_attn_norm, output, model = model_setup_cnn_rnn(model,vectors, config)
+            print('note_attn_norm:')
+            print(note_attn_norm)
+
         lossy = loss_(output, labels)
         lossy.backward()
         #torch.nn.utils.clip_grad_norm(model.parameters(), 5.0)
@@ -158,6 +223,7 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
         labels = labels.cpu()
         labels = labels.data.numpy()
         labels_all += list(labels)
+        output = F.softmax(output)
         output= output.cpu()
         output_all += list(output.data.numpy())
     
@@ -184,6 +250,11 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
                         logger.info('EARLY STOP:  Max auc %f at Epoch %i' % (auc_max,epoch))
                         torch.save(model.state_dict(), savepath + str(epoch) + 'model.pt')
                         logger.info('Model Saved')
+                        test_loss, acc_test, auc_test = evaluate(model, loss_, test_iter, config)
+                        logger.info(timeSince(start))
+                        logger.info("Number of epoch: %i ; Test Loss %f;  Test acc %f; Test AUC %f" 
+                              %(epoch, test_loss, acc_test, auc_test ))
+                        return True
                 else:
                     auc_max = auc
                     early_count = 0

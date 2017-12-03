@@ -11,6 +11,8 @@ import torch.nn.functional as F
 import random
 import logging
 
+
+
 def batch_matmul_bias(seq, weight, bias, nonlinearity=''):
     s = None
     print(weight.size(),  seq.size())
@@ -54,6 +56,63 @@ def attention_mul(rnn_outputs, att_weights):
             attn_vectors = torch.cat((attn_vectors,h_i),0)
     return torch.sum(attn_vectors, 0)
 
+class Hierachical_BiGRU_max(nn.Module):
+    def __init__(self, config):
+        super(Hierachical_BiGRU_max, self).__init__()
+        self.batch_size = config['batch_size']
+        n_classes = config['target_class']
+        
+        self.bigru_max_sub_hidden = config['bigru_max_sub_hidden']
+        self.bigru_max_note_hidden = config['bigru_max_note_hidden']
+
+        words_dim = config['words_dim']
+        self.embed_mode = config['embed_mode']
+        
+        vocab_size = config['vocab_size']
+        self.word_embed = nn.Embedding(vocab_size, words_dim)
+
+        self.note_bigru = nn.GRU(words_dim, self.bigru_max_note_hidden, bidirectional= True )
+        
+        self.subject_gru = nn.GRU(2*self.bigru_max_note_hidden, self.bigru_max_sub_hidden, bidirectional= True)
+        
+
+        self.lin_out = nn.Linear(self.bigru_max_sub_hidden * 2, n_classes)
+
+        self.softmax_note = nn.Softmax()
+        
+    def forward(self, mini_batch, hidden_state_note, hidden_state_sub):
+        num_of_notes, num_of_words, batch_size = mini_batch.size()
+        s = None
+        for i in range(num_of_notes):
+
+            if self.embed_mode == 'random':
+                x = self.word_embed(mini_batch[i,:,:].transpose(0,1)) 
+            #print(x.size())
+            #x = x.tran
+            #print(x.size())
+            x, hidden_state_note = self.note_bigru(x.transpose(0,1), hidden_state_note)
+            #print(x.size())
+            x = x.transpose(0,1).transpose(1,2)
+            _s = F.max_pool1d(x, x.size(2)).squeeze(2)
+            #print(_s.size())
+            if (s is None):
+                s = _s.unsqueeze(0)
+                #print(s.size())
+            else:
+                s = torch.cat((s,_s.unsqueeze(0)),0)
+
+        
+        out_note, _ =  self.subject_gru(s, hidden_state_sub)
+        out_note = out_note.transpose(0,1).transpose(1,2) 
+        note_embedding = F.max_pool1d(out_note, out_note.size(2)).squeeze(2)
+        
+        #x = self.lin_out(note_embedding)
+
+        return self.lin_out(note_embedding)
+    
+    def init_hidden(self):
+        return Variable(torch.zeros(2, self.batch_size, self.bigru_max_note_hidden)), Variable(torch.zeros(2, self.batch_size, self.bigru_max_sub_hidden))
+               
 
 class AttentionRNN(nn.Module):
     def __init__(self, config):
@@ -115,13 +174,13 @@ class AttentionRNN(nn.Module):
             # size note_attn_vectors: batch size x note_hidden * num_directions           
             final_map = self.lin_out(note_attn_vectors)
             #print(final_map)
-            return out_note, note_attn_norm, note_attn_vectors, F.softmax(final_map)
+            return out_note, note_attn_norm, note_attn_vectors, final_map
 
         else:
             x = out_note[-1,:,:].squeeze()
             x = self.lin_out(x)
 
-            return F.softmax(x)
+            return x
     
     def init_hidden(self):
         if self.bidirection_gru == True:
