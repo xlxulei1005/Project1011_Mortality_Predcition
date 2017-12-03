@@ -77,12 +77,14 @@ class Hierachical_BiGRU_max(nn.Module):
         
 
         self.lin_out = nn.Linear(self.bigru_max_sub_hidden * 2, n_classes)
-
+    
         self.softmax_note = nn.Softmax()
         
-    def forward(self, mini_batch, hidden_state_note, hidden_state_sub):
+    def forward(self, mini_batch, hidden_state_note, hidden_state_sub, test_model = False):
         num_of_notes, num_of_words, batch_size = mini_batch.size()
         s = None
+
+        words_atten = []
         for i in range(num_of_notes):
 
             if self.embed_mode == 'random':
@@ -93,7 +95,12 @@ class Hierachical_BiGRU_max(nn.Module):
             x, hidden_state_note = self.note_bigru(x.transpose(0,1), hidden_state_note)
             #print(x.size())
             x = x.transpose(0,1).transpose(1,2)
-            _s = F.max_pool1d(x, x.size(2)).squeeze(2)
+            _s, indices_word = F.max_pool1d(x, x.size(2), return_indices = True)
+            _s = _s.squeeze(2)
+
+            if test_model:
+                indices_word = indices_word.cpu()
+                words_atten.append(indices_word.numpy())
             #print(_s.size())
             if (s is None):
                 s = _s.unsqueeze(0)
@@ -104,11 +111,17 @@ class Hierachical_BiGRU_max(nn.Module):
         
         out_note, _ =  self.subject_gru(s, hidden_state_sub)
         out_note = out_note.transpose(0,1).transpose(1,2) 
-        note_embedding = F.max_pool1d(out_note, out_note.size(2)).squeeze(2)
+        note_embedding, attention_indices = F.max_pool1d(out_note, out_note.size(2), return_indices = True)
+        note_embedding = note_embedding.squeeze(2)
+        print(str(attention_indices))
         
         #x = self.lin_out(note_embedding)
+        if test_model:
+            attention_indices = attention_indices.cpu()
 
-        return self.lin_out(note_embedding)
+            return self.lin_out(note_embedding), attention_indices.numpy(), words_atten
+        else:
+            return self.lin_out(note_embedding)
     
     def init_hidden(self):
         return Variable(torch.zeros(2, self.batch_size, self.bigru_max_note_hidden)), Variable(torch.zeros(2, self.batch_size, self.bigru_max_sub_hidden))

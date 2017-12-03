@@ -1,5 +1,15 @@
+"""
+Train CNN-RNN or BiGRU-maxpooling with MIMIC-III data
+agrs: model (['cnn_rnn', 'bigru_max'])
+
+
+Nan Wu
+All rights reserved
+Report bugs to Nan Wu nw1045@nyu.edu
+"""
+
 from model import AttentionRNN, Hierachical_BiGRU_max
-from train import data_iter, eval_iter, training_loop
+from train import data_iter, eval_iter, training_loop, test_iter
 from data import data_formatting
 import logging
 import os
@@ -53,8 +63,9 @@ def main(args):
     
     if config['model'] == 'cnn_rnn':
         model = AttentionRNN(config)
-    else:
+    elif config['model'] == 'bigru_max':
         model = Hierachical_BiGRU_max(config)
+
     print(model.parameters())
 
 
@@ -74,12 +85,12 @@ def main(args):
 
     dev_iter = eval_iter(val_data[:int(config['data_portion']*len(val_data))], config['batch_size'])
 
-    test_iter = eval_iter(test_data[:int(config['data_portion']*len(test_data))], config['batch_size'])
+    testing_iter = test_iter(test_data[:int(config['data_portion']*len(test_data))], 1)
 
 
     logger.info('Start to train...')
     #os.mkdir(config['savepath'])
-    training_loop(config, model, loss, optimizer, train_data[:int(config['data_portion']*len(train_data))], training_iter, dev_iter, test_iter, logger, config['savepath'])
+    training_loop(config, model, loss, optimizer, train_data[:int(config['data_portion']*len(train_data))], training_iter, dev_iter, testing_iter, logger, config['savepath'])
 
 
 

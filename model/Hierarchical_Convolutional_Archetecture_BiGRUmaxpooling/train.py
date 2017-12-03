@@ -1,3 +1,9 @@
+"""
+Nan Wu
+All rights reserved
+Report bugs to Nan Wu nw1045@nyu.edu
+"""
+
 import time
 import math
 import numpy as np
@@ -10,6 +16,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import random
 import sklearn.metrics as metrics
+import pickle
 
 def data_iter(source, batch_size):
     dataset_size = len(source)
@@ -47,6 +54,25 @@ def eval_iter(source, batch_size):
         
     return batches
 
+def test_iter(source, batch_size = 1):
+    batches = []
+    dataset_size = len(source)
+    start = -1 * batch_size
+    order = list(range(dataset_size))
+    #random.shuffle(order)
+
+    while start < dataset_size - batch_size:
+        start += batch_size
+        batch_indices = order[start:start + batch_size]
+        batch = [source[index] for index in batch_indices]
+        if len(batch) == batch_size:
+            batches.append(batch)
+        else:
+            continue
+        
+    return batches
+
+
 # The following function gives batches of vectors and labels, 
 # these are the inputs to your model and loss function
 def get_batch(batch):
@@ -57,13 +83,15 @@ def get_batch(batch):
         labels.append(dict["label"])
     return vectors, labels
 
-def pad_minibatch(vectors, word_padded_length, padded, pad_by_batch):
-
+def pad_minibatch(vectors, word_padded_length, padded_word, pad_by_batch, max_length, random_cutting = False):
+ 
     length = max([len(x) for x in vectors])
     padded_v = []
     note_len = word_padded_length
     if pad_by_batch:
         note_len = max([len(x) for v in vectors for x in v ])
+        note_len = max(max_length, note_len)
+
     for before_padded in vectors:
         #print(before_padded)
         v = before_padded[:]
@@ -71,13 +99,17 @@ def pad_minibatch(vectors, word_padded_length, padded, pad_by_batch):
         for i in range(length - len(before_padded)):
             v.append([0]*note_len)
         
-        if padded:
+        if padded_word:
             padded_v.append(v)
         else:
             words_padded = []
             for note in v:
-                if len(note)>=note_len:
-                    words_padded.append(note[:note_len])
+                if len(note)>note_len:
+                    if random_cutting:
+                        start_point = random.choice(range(len(note) - note_len))
+                        words_padded.append(note[start_point:note_len+start_point])
+                    else:
+                        words_padded.append(note[:note_len])
                 else:
                     words_padded.append(note + [0]*(note_len -len(note)))
             padded_v.append(words_padded)
@@ -106,15 +138,86 @@ def model_setup_cnn_rnn(model,vectors, config):
         output = model(vectors, hidden)
         return output, model
 
-def model_setup_bigru_max(model, vectors, config):
+def model_setup_bigru_max(model, vectors, config, test_model = False):
 
     hidden_note, hidden_sub = model.init_hidden()
     if config['cuda']:
         hidden_note, hidden_sub = hidden_note.cuda(), hidden_sub.cuda()
 
-    output = model(vectors, hidden_note, hidden_sub)
+    if test_model:
+        output, attention_indices, words_atten = model(vectors, hidden_note, hidden_sub, True)
 
-    return output, model
+        return output, model, attention_indices, words_atten
+
+    else:
+        output = model(vectors, hidden_note, hidden_sub)
+
+        return output, model
+
+def testing(model, loss_, data_iter, config):
+    model.eval()
+    correct = 0
+    total = 0
+    labels_all = []
+    output_all = []
+    attention_indices_all = []
+    words_atten_all = []
+
+    for i in range(len(data_iter)):
+        vectors, labels = get_batch(data_iter[i])
+        
+        if config['model'] == 'bigru_max':
+            pad_by_batch = True
+            max_length = 1000000
+            random_cutting = False
+
+        elif config['model'] == 'cnn_rnn':
+            pad_by_batch = False
+            max_length = None
+            random_cutting = None
+
+        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
+            pad_by_batch, max_length, random_cutting)
+
+        labels = torch.stack(labels).squeeze()
+        
+        if config['cuda']:
+            vectors = vectors.cuda()
+            labels = labels.cuda()
+
+        vectors = Variable(vectors)
+        labels = Variable(labels)
+
+        if config['model'] == 'bigru_max':
+            output, model, attention_indices, words_atten = model_setup_bigru_max(model,vectors, config, test= True)
+            attention_indices_all.append(attention_indices)
+            words_atten_all.append(words_atten)
+           
+        elif config['model'] == 'cnn_rnn':
+            note_attn_norm, output, model = model_setup_cnn_rnn(model,vectors, config)
+            note_attn_norm = note_attn_norm.cpu()
+            attention_indices_all.append(note_attn_norm.numpy())
+            print('note_attn_norm:')
+            print(note_attn_norm)
+
+        output = F.softmax(output)
+        #loss = loss_(output, labels)
+        _, predicted = torch.max(output.data, 1)
+        total += labels.size(0)
+        predicted = predicted.cpu()
+        predicted = predicted.numpy()
+        labels = labels.cpu()
+        labels = labels.data.numpy()
+        correct += (predicted == labels).sum()
+        labels_all += list(labels)
+        output = output.cpu()
+        output_all += list(output.data.numpy())
+
+    output_all = np.array(output_all)
+    auc = metrics.roc_auc_score(labels_all, output_all[:,1])
+    loss_epoch = metrics.log_loss(labels_all, output_all[:,1])
+
+    return loss_epoch, correct / float(total), auc, attention_indices_all, words_atten_all
 
 def evaluate(model, loss_, data_iter, config):
     model.eval()
@@ -127,11 +230,16 @@ def evaluate(model, loss_, data_iter, config):
         
         if config['model'] == 'bigru_max':
             pad_by_batch = True
+            max_length = config['max_note_length']
+            random_cutting = config['random_cutting']
         elif config['model'] == 'cnn_rnn':
             pad_by_batch = False
+            max_length = None
+            random_cutting = None
 
-        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], pad_by_batch)
-        
+        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
+            pad_by_batch, max_length, random_cutting)
+
         labels = torch.stack(labels).squeeze()
         
         if config['cuda']:
@@ -184,16 +292,23 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
     output_all = []
     auc_max = 0
     early_count = 0
+
     while epoch <= config['num_epochs']:
+        random.seed()
         model.train()
         vectors, labels = get_batch(next(training_iter)) 
 
         if config['model'] == 'bigru_max':
             pad_by_batch = True
+            max_length = config['max_note_length']
+            random_cutting = config['random_cutting']
         elif config['model'] == 'cnn_rnn':
             pad_by_batch = False
+            max_length = None
+            random_cutting = None
 
-        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], pad_by_batch)
+        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
+            pad_by_batch, max_length, random_cutting)
         
 
         labels = torch.stack(labels).squeeze()
@@ -251,6 +366,9 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
                         torch.save(model.state_dict(), savepath + str(epoch) + 'model.pt')
                         logger.info('Model Saved')
                         test_loss, acc_test, auc_test = evaluate(model, loss_, test_iter, config)
+                        if config['save_test_result']:
+                        	test_loss, acc_test, auc_test, attention_indices_all, words_atten_all = testing(model, loss_, test_iter, config)
+                        	pickle.dump({'notes_attention':attention_indices_all,'words_attention':words_atten_all}, open(savepath + str(epoch)+'test_result.pickle', 'rb'))
                         logger.info(timeSince(start))
                         logger.info("Number of epoch: %i ; Test Loss %f;  Test acc %f; Test AUC %f" 
                               %(epoch, test_loss, acc_test, auc_test ))
