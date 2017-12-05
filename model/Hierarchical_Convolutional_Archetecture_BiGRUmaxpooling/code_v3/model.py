@@ -110,14 +110,14 @@ class Hierachical_BiGRU_max(nn.Module):
 
         
         out_note, _ =  self.subject_gru(s, hidden_state_sub)
-        out_note = out_note.transpose(0,1).transpose(1,2) 
+        #out_note = out_note.transpose(0,1).transpose(1,2) 
         
         predict_by_note = []
         for i in range(num_of_notes):
             x = out_note[i,:,:].squeeze()
             x = self.lin_out(x)
             predict_by_note.append(x)
-
+        out_note = out_note.transpose(0,1).transpose(1,2)
 
         note_embedding, attention_indices = F.max_pool1d(out_note, out_note.size(2), return_indices = True)
         note_embedding = note_embedding.squeeze(2)

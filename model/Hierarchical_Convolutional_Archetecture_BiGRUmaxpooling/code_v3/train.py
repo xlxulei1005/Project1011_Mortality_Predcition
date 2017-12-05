@@ -325,10 +325,10 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
         if config['model'] == 'bigru_max':
             output, feature_by_note = model_setup_bigru_max(model, vectors, config)
             lossy = loss_(output, labels) 
-            
+            len_notes = len(feature_by_note)
             if config['regulization_by_note']:
                 for out in feature_by_note:
-                    lossy + = loss_(out, labels) 
+                    lossy += loss_(out, labels)/len_notes 
 
         elif config['model'] == 'cnn_rnn':
             note_attn_norm, output = model_setup_cnn_rnn(model,vectors, config)
