@@ -393,13 +393,12 @@ def training_loop(config, model, loss_, time_loss_, optim, train_data, training_
                         logger.info('EARLY STOP:  Max auc %f at Epoch %i' % (auc_max,epoch))
                         torch.save(model.state_dict(), savepath + str(epoch) + 'model.pt')
                         logger.info('Model Saved')
-                        test_loss, acc_test, auc_test = evaluate(model, loss_, test_iter, config)
+                        #test_loss, acc_test, auc_test = evaluate(model, loss_, test_iter, config)
                         if config['save_test_result']:
                         	test_loss, acc_test, auc_test, attention_indices_all, words_atten_all = testing(model, loss_, test_iter, config)
                         	pickle.dump({'notes_attention':attention_indices_all,'words_attention':words_atten_all}, open(savepath + str(epoch)+'test_result.pickle', 'rb'))
-                        logger.info(timeSince(start))
-                        logger.info("Number of epoch: %i ; Test Loss %f;  Test acc %f; Test AUC %f" 
-                              %(epoch, test_loss, acc_test, auc_test ))
+                                logger.info(timeSince(start))
+                                logger.info("Number of epoch: %i ; Test Loss %f;  Test acc %f; Test AUC %f" %(epoch, test_loss, acc_test, auc_test ))
                         return True
                 else:
                     auc_max = auc
