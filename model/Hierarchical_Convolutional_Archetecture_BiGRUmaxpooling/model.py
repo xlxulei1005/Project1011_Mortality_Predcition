@@ -156,8 +156,11 @@ class Hierachical_BiGRU_max(nn.Module):
         else:
             return self.lin_out(note_embedding), predict_by_note, time_feature
     
-    def init_hidden(self):
-        return Variable(torch.zeros(2, self.batch_size, self.bigru_max_note_hidden)), Variable(torch.zeros(2, self.batch_size, self.bigru_max_sub_hidden))
+    def init_hidden(self, test_mode = False):
+        if test_mode:
+            return Variable(torch.zeros(2, 1, self.bigru_max_note_hidden)), Variable(torch.zeros(2, 1, self.bigru_max_sub_hidden))
+        else:
+            return Variable(torch.zeros(2, self.batch_size, self.bigru_max_note_hidden)), Variable(torch.zeros(2, self.batch_size, self.bigru_max_sub_hidden))
                
 
 class AttentionRNN(nn.Module):

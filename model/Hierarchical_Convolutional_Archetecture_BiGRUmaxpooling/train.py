@@ -144,7 +144,7 @@ def model_setup_cnn_rnn(model,vectors, config):
 
 def model_setup_bigru_max(model, vectors, config, test_model = False):
 
-    hidden_note, hidden_sub = model.init_hidden()
+    hidden_note, hidden_sub = model.init_hidden(test_model)
     if config['cuda']:
         hidden_note, hidden_sub = hidden_note.cuda(), hidden_sub.cuda()
 
