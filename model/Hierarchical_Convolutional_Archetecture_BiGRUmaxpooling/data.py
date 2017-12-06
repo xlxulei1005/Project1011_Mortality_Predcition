@@ -7,25 +7,25 @@ import torch
 import numpy as np
 import os
 
-def bin_time_label_generation(train_data, split_points = [5, 10 ,15]):
-    '''
-    
-    '''
+def bin_time_label_generation(train_data, split_points = [12*60, 24*60 ,48*60, 72*60, 96*60, 120*60, 240*60 ]):
     def label_generate(time):
         label_index = 0
+        # 0 for padding
         for point in split_points:
             if time<= point:
                 return label_index
             label_index +=1
-        return label_index+1
+        return label_index
     label_all = []           
-   
-    for time_list in train_data['TIME_TODEATH']:
+    label_list = []
+    for time_list in train_data['TIME_TO_DEATH']:
         label = []
         for t in time_list:
-            label.append(label_generate[t])
+            cate = label_generate(t)
+            label.append(cate)
+            label_list.append(cate)
         label_all.append(label)
-    return label_all
+    return label_all, label_list
     
 def continues_time_label_generation():
     pass
@@ -60,11 +60,12 @@ def notes_padding(notes_all, note_len):
     del notes
     return notes_per_sub
 
-def data_dict_generate(label, data):
+def data_dict_generate(label, data, time_label):
     result = []
-    for (d, l) in zip(data, label):
+    for i in range(len(label)):
+    #for (d, l, t) in zip(data, label, ):
         #print(l)
-        result.append({'text':d, 'label':torch.LongTensor([int(l)])})
+        result.append({'text':data[i], 'label':torch.LongTensor([int(label[i])]), 'time_label': time_label[i]})
     return result
 
 def data_loading(path, time_name, test_file = None, train_file =None,val_file= None ):
@@ -95,6 +96,10 @@ def data_formatting(config, path, time_name,  concat = True, sort_by_number_of_n
     
     train_time, test_time, val_time = data_loading(path, time_name, test_file, train_file, val_file)
     
+    time_label_train, _ = bin_time_label_generation(train_time, config['split_points'])
+    time_label_val, _ = bin_time_label_generation(val_time, config['split_points'])
+    time_label_test, _ = bin_time_label_generation(test_time, config['split_points'])
+
     if config['to_sentences']:
         train_time, test_time, val_time = notes_to_sentences(train_time), notes_to_sentences(test_time), notes_to_sentences(val_time)
         test_notes, len_test = notes_combine(test_time, False )
@@ -127,9 +132,9 @@ def data_formatting(config, path, time_name,  concat = True, sort_by_number_of_n
         test_data = data_dict_generate(test_time['MORTALITY_LABEL'], test_notes_padded)
 
     else:
-        val_data = data_dict_generate(val_time['MORTALITY_LABEL'], val_notes)
-        train_data = data_dict_generate(np.array(train_time['MORTALITY_LABEL'])[index], train_notes)
-        test_data = data_dict_generate(test_time['MORTALITY_LABEL'], test_notes)
+        val_data = data_dict_generate(val_time['MORTALITY_LABEL'], val_notes, np.array(time_label_val))
+        train_data = data_dict_generate(np.array(train_time['MORTALITY_LABEL'])[index], train_notes, np.array(time_label_train)[index])
+        test_data = data_dict_generate(test_time['MORTALITY_LABEL'], test_notes, np.array(time_label_test))
 
     return train_data, val_data, test_data, len_all.max()
 

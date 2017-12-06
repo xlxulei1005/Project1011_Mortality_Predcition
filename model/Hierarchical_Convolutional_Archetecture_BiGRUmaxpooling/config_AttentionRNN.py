@@ -27,7 +27,8 @@ def config_loading():
 	          'padding_max': True, 
 	          'word_padded_length_in_notes': None, #None for default 
 	          'savepath': './model/24h_words_dim_300_output_cha_100_hidden_200_filter_width_8_batch_16_SGD_lr0.01_drop_0_attention/',
-	          'time_name': '24h'
+	          'time_name': '24h',
+	          'split_points':   [12*60, 24*60 ,48*60, 72*60, 96*60, 120*60, 240*60 ]
 	}
 
 	if config_cnn_rnn['word_padded_length_in_notes'] == None:

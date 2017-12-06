@@ -61,6 +61,10 @@ class Hierachical_BiGRU_max(nn.Module):
         super(Hierachical_BiGRU_max, self).__init__()
         self.batch_size = config['batch_size']
         n_classes = config['target_class']
+        time_classes = len(config['split_points'])+1
+
+        self.regulization_by_note = config['regulization_by_note']
+        self.regulization_by_time = config['regulization_by_time']
         
         self.bigru_max_sub_hidden = config['bigru_max_sub_hidden']
         self.bigru_max_note_hidden = config['bigru_max_note_hidden']
@@ -75,7 +79,7 @@ class Hierachical_BiGRU_max(nn.Module):
         
         self.subject_gru = nn.GRU(2*self.bigru_max_note_hidden, self.bigru_max_sub_hidden, bidirectional= True)
         
-
+        self.lin_time = nn.Linear(self.bigru_max_sub_hidden*2, time_classes)
         self.lin_out = nn.Linear(self.bigru_max_sub_hidden * 2, n_classes)
     
         self.softmax_note = nn.Softmax()
@@ -113,10 +117,31 @@ class Hierachical_BiGRU_max(nn.Module):
         #out_note = out_note.transpose(0,1).transpose(1,2) 
         
         predict_by_note = []
-        for i in range(num_of_notes):
-            x = out_note[i,:,:].squeeze()
-            x = self.lin_out(x)
-            predict_by_note.append(x)
+        if self.regulization_by_note and not test_model:
+            for i in range(num_of_notes):
+                x = out_note[i,:,:].squeeze()
+                x = self.lin_out(x)
+                predict_by_note.append(x)
+        
+        time_feature = None
+        #print(out_note)
+        if self.regulization_by_time and not test_model:
+            for i in range(num_of_notes):
+                x = out_note[i,:,:].squeeze()
+                x = self.lin_time(x)
+
+                if (time_feature is None):
+                    time_feature = x.unsqueeze(0)
+                    #print(s.size())
+                else:
+                    time_feature = torch.cat((time_feature, x.unsqueeze(0)),0) # number_note * batch_size * time_class
+            
+            reorga = []
+            for i in range(batch_size):
+                x = time_feature[:,i,:].squeeze()
+                reorga.append(x)
+            time_feature = torch.cat(reorga, 0 )
+
         out_note = out_note.transpose(0,1).transpose(1,2)
 
         note_embedding, attention_indices = F.max_pool1d(out_note, out_note.size(2), return_indices = True)
@@ -127,9 +152,9 @@ class Hierachical_BiGRU_max(nn.Module):
         if test_model:
             attention_indices = attention_indices.cpu()
 
-            return self.lin_out(note_embedding), attention_indices.numpy(), words_atten, predict_by_note
+            return self.lin_out(note_embedding), attention_indices.numpy(), words_atten, predict_by_note, time_feature
         else:
-            return self.lin_out(note_embedding), predict_by_note
+            return self.lin_out(note_embedding), predict_by_note, time_feature
     
     def init_hidden(self):
         return Variable(torch.zeros(2, self.batch_size, self.bigru_max_note_hidden)), Variable(torch.zeros(2, self.batch_size, self.bigru_max_sub_hidden))

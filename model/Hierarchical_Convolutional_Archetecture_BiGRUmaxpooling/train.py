@@ -78,13 +78,17 @@ def test_iter(source, batch_size = 1):
 def get_batch(batch):
     vectors = []
     labels = []
+    time_labels = []
     for dict in batch:
         vectors.append(dict["text"])
         labels.append(dict["label"])
-    return vectors, labels
+        time_labels.append(dict['time_label'])
+    return vectors, labels, time_labels
 
 def pad_minibatch(vectors, word_padded_length, padded_word, pad_by_batch, max_length, random_cutting = False):
- 
+    
+    #number_of_notes_per_subject = [len(x) for x in vectors]
+
     length = max([len(x) for x in vectors])
     padded_v = []
     note_len = word_padded_length
@@ -122,7 +126,7 @@ def pad_minibatch(vectors, word_padded_length, padded_word, pad_by_batch, max_le
             #         except IndexError:
             #             pass
         
-    return torch.from_numpy(np.array(padded_v)).permute(1,2,0)
+    return torch.from_numpy(np.array(padded_v)).permute(1,2,0), length
 
 
 def model_setup_cnn_rnn(model,vectors, config):
@@ -145,14 +149,14 @@ def model_setup_bigru_max(model, vectors, config, test_model = False):
         hidden_note, hidden_sub = hidden_note.cuda(), hidden_sub.cuda()
 
     if test_model:
-        output, attention_indices, words_atten, feature_by_note = model(vectors, hidden_note, hidden_sub, True)
+        output, attention_indices, words_atten, feature_by_note, time_feature = model(vectors, hidden_note, hidden_sub, True)
 
-        return output, attention_indices, words_atten, feature_by_note
+        return output, attention_indices, words_atten, feature_by_note, time_feature
 
     else:
-        output, feature_by_note = model(vectors, hidden_note, hidden_sub)
+        output, feature_by_note, time_feature = model(vectors, hidden_note, hidden_sub)
 
-        return output, feature_by_note
+        return output, feature_by_note, time_feature
 
 def testing(model, loss_, data_iter, config):
     model.eval()
@@ -164,7 +168,7 @@ def testing(model, loss_, data_iter, config):
     words_atten_all = []
 
     for i in range(len(data_iter)):
-        vectors, labels = get_batch(data_iter[i])
+        vectors, labels, _ = get_batch(data_iter[i])
         
         if config['model'] == 'bigru_max':
             pad_by_batch = True
@@ -176,7 +180,7 @@ def testing(model, loss_, data_iter, config):
             max_length = None
             random_cutting = None
 
-        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
+        vectors, _ = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
             pad_by_batch, max_length, random_cutting)
 
         labels = torch.stack(labels).squeeze()
@@ -189,7 +193,7 @@ def testing(model, loss_, data_iter, config):
         labels = Variable(labels)
 
         if config['model'] == 'bigru_max':
-            output, attention_indices, words_atten, _ = model_setup_bigru_max(model,vectors, config, test= True)
+            output, attention_indices, words_atten, _ , _= model_setup_bigru_max(model,vectors, config, test= True)
             attention_indices_all.append(attention_indices)
             words_atten_all.append(words_atten)
            
@@ -226,7 +230,7 @@ def evaluate(model, loss_, data_iter, config):
     labels_all = []
     output_all = []
     for i in range(len(data_iter)):
-        vectors, labels = get_batch(data_iter[i])
+        vectors, labels, _ = get_batch(data_iter[i])
         
         if config['model'] == 'bigru_max':
             pad_by_batch = True
@@ -237,7 +241,7 @@ def evaluate(model, loss_, data_iter, config):
             max_length = None
             random_cutting = None
 
-        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
+        vectors, _ = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
             pad_by_batch, max_length, random_cutting)
 
         labels = torch.stack(labels).squeeze()
@@ -250,7 +254,7 @@ def evaluate(model, loss_, data_iter, config):
         labels = Variable(labels)
 
         if config['model'] == 'bigru_max':
-            output, _  = model_setup_bigru_max(model,vectors, config)
+            output, _, _  = model_setup_bigru_max(model,vectors, config)
            
         elif config['model'] == 'cnn_rnn':
             note_attn_norm, output = model_setup_cnn_rnn(model,vectors, config)
@@ -283,7 +287,7 @@ def timeSince(since):
     s -= m * 60
     return '%dm %ds' % (m, s)
 
-def training_loop(config, model, loss_, optim, train_data, training_iter, dev_iter, test_iter, logger, savepath):
+def training_loop(config, model, loss_, time_loss_, optim, train_data, training_iter, dev_iter, test_iter, logger, savepath):
     step = 0
     epoch = 0
     total_batches = int(len(train_data) / config['batch_size'])
@@ -296,7 +300,7 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
     while epoch <= config['num_epochs']:
         random.seed()
         model.train()
-        vectors, labels = get_batch(next(training_iter)) 
+        vectors, labels, time_labels = get_batch(next(training_iter)) 
 
         if config['model'] == 'bigru_max':
             pad_by_batch = True
@@ -307,7 +311,7 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
             max_length = None
             random_cutting = None
 
-        vectors = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
+        vectors, max_length_of_notes = pad_minibatch(vectors, config['word_padded_length_in_notes'], config['padding_before_batch'], 
             pad_by_batch, max_length, random_cutting)
         
 
@@ -323,12 +327,30 @@ def training_loop(config, model, loss_, optim, train_data, training_iter, dev_it
         
         
         if config['model'] == 'bigru_max':
-            output, feature_by_note = model_setup_bigru_max(model, vectors, config)
+            output, feature_by_note, time_out = model_setup_bigru_max(model, vectors, config)
+            
             lossy = loss_(output, labels) 
+            
             len_notes = len(feature_by_note)
+
             if config['regulization_by_note']:
                 for out in feature_by_note:
                     lossy += loss_(out, labels)/len_notes 
+
+
+            if config['regulization_by_time']:
+                time_labels_by_note = []
+                for time_labels_per_sub in time_labels:
+                    time_labels_by_note = time_labels_by_note + time_labels_per_sub + (max_length_of_notes - len(time_labels_per_sub))*[0]
+                
+                time_labels_by_note = torch.from_numpy(np.array(time_labels_by_note))
+                if config['cuda']:
+                    time_labels_by_note = time_labels_by_note.cuda()
+
+                time_labels_by_note = Variable(time_labels_by_note)
+                
+                lossy += time_loss_(time_out, time_labels_by_note)
+
 
         elif config['model'] == 'cnn_rnn':
             note_attn_norm, output = model_setup_cnn_rnn(model,vectors, config)

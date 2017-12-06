@@ -79,6 +79,8 @@ def main(args):
     
     # Loss and Optimizer
     loss = nn.CrossEntropyLoss()
+    time_loss = nn.CrossEntropyLoss(ignore_index = -1, size_average=True)
+    
     if config['optimizer'] == 'SGD':
         optimizer = torch.optim.SGD(model.parameters(), lr=config['learning_rate'])
     elif config['optimizer'] == 'Adam':
@@ -95,7 +97,7 @@ def main(args):
 
     logger.info('Start to train...')
     #os.mkdir(config['savepath'])
-    training_loop(config, model, loss, optimizer, train_data[:int(config['data_portion']*len(train_data))], training_iter, dev_iter, testing_iter, logger, config['savepath'])
+    training_loop(config, model, loss, time_loss, optimizer, train_data[:int(config['data_portion']*len(train_data))], training_iter, dev_iter, testing_iter, logger, config['savepath'])
 
 
 
