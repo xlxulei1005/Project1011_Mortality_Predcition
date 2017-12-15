@@ -193,7 +193,7 @@ def testing(model, loss_, data_iter, config):
 		labels = Variable(labels)
 
 		if config['model'] == 'bigru_max':
-			output, attention_indices, words_atten, _ , _= model_setup_bigru_max(model,vectors, config, test= True)
+			output, attention_indices, words_atten, _ , _= model_setup_bigru_max(model,vectors, config, test_model= True)
 			attention_indices_all.append(attention_indices)
 			words_atten_all.append(words_atten)
 		   
@@ -388,19 +388,21 @@ def training_loop(config, model, loss_, time_loss_, optim, train_data, training_
 				logger.info("Epoch %i; Step %i / %i; Train Loss %f; Val Loss: %f; Val acc %f; Val AUC %f" 
 					 %(epoch, step%total_batches, total_batches, loss_epoch, eval_loss, acc, auc))
 				
-				if auc < auc_max:
-					early_count += 1
-					if early_count > config['early_stop']:
-						logger.info('EARLY STOP:  Max auc %f at Epoch %i' % (auc_max,epoch))
-						torch.save(model.state_dict(), savepath + str(epoch) + 'model.pt')
-						logger.info('Model Saved')
-						#test_loss, acc_test, auc_test = evaluate(model, loss_, test_iter, config)
-						if config['save_test_result']:
-							test_loss, acc_test, auc_test, attention_indices_all, words_atten_all = testing(model, loss_, test_iter, config)
-							pickle.dump({'notes_attention':attention_indices_all,'words_attention':words_atten_all}, open(savepath + str(epoch)+'test_result.pickle', 'rb'))
-							logger.info(timeSince(start))
-							logger.info("Number of epoch: %i ; Test Loss %f;  Test acc %f; Test AUC %f" %(epoch, test_loss, acc_test, auc_test ))
-						return True
+
+			    if auc < auc_max:
+                    early_count += 1
+                    if early_count > config['early_stop']:
+                        logger.info('EARLY STOP:  Max auc %f at Epoch %i' % (auc_max,epoch))
+                        torch.save(model.state_dict(), savepath + str(epoch) + 'model.pt')
+                        logger.info('Model Saved')
+                        #test_loss, acc_test, auc_test = evaluate(model, loss_, test_iter, config)
+                        if config['save_test_result']:
+                        	test_loss, acc_test, auc_test, attention_indices_all, words_atten_all = testing(model, loss_, test_iter, config)
+                        	pickle.dump({'notes_attention':attention_indices_all,'words_attention':words_atten_all}, open(savepath + str(epoch)+'test_result.pickle', 'wb'))
+                                logger.info(timeSince(start))
+                                logger.info("Number of epoch: %i ; Test Loss %f;  Test acc %f; Test AUC %f" %(epoch, test_loss, acc_test, auc_test ))
+                        return True
+
 				else:
 					auc_max = auc
 					early_count = 0
