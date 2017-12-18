@@ -36,5 +36,6 @@ All of our processed data can be found at our [Google Drive](https://drive.googl
 
 ## Recurrent Hierarchical Attention Mechanism
 The structure of our model is:
+
 ![picture](/graph_explanation/BiGRU_maxpooling.png)
 
